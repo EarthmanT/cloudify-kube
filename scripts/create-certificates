@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+export LOCAL_CONFIG_FOLDER=certificates/configs
+export LOCAL_CERTS_FOLDER=certificates/results
+export LOCAL_TEMP_FOLDER=certificates/temp
+export FINAL_CERTS_FOLDER=/etc/cloudify/ssl
+
+log_message "Creating CA"
+
+openssl req -x509 -nodes -newkey rsa:2048 -days 3650 -batch \
+    -out ${LOCAL_CERTS_FOLDER}/root.crt \
+    -keyout ${LOCAL_CERTS_FOLDER}/root.key
+
+    kubectl create secret generic root-crt --from-file=${LOCAL_CERTS_FOLDER}/root.crt
+    kubectl create secret generic root-key --from-file=${LOCAL_CERTS_FOLDER}/root.key
+
+
+create_csr_and_cert () {
+
+    if [[ -z "${1}" ]]; then
+        log_message "You must provide a Pod name as a first argument."
+        exit 1
+    else
+        export PODNAME=$1
+    fi
+
+    if [[ -z "${2}" ]]; then
+        log_message "You must provide a component name as a second argument."
+        exit 1
+    else
+        export COMPONENT=$2
+    fi
+
+    if [[ -z "${3}" ]]; then
+        export SERVER=server
+    else
+        export SERVER=$3
+    fi
+
+    log_message "Creating certs and keys for component ${COMPONENT}."
+
+    log_message "Exporting variables."
+    export CSR_CONFIG_FILE_NAME=csr_config_${COMPONENT}
+    export CSR_FILE_NAME=csr_config_${PODNAME}_out.csr
+    export CERT_FILE_NAME=${COMPONENT}_${SERVER}.crt
+    export KEY_FILE_NAME=${COMPONENT}_${SERVER}.key
+    log_message "Getting the IP of ${COMPONENT} service."
+    export SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
+    log_message "${COMPONENT} service IP: ${SERVICE_IP}"
+    log_message "Running sed on CSR configs."
+    sed -i "s|REPLACE_IP|$SERVICE_IP|g" ${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME
+    log_message "Creating keys."
+    openssl req -newkey rsa:2048 -nodes -batch -sha256 \
+        -config ${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME \
+        -out $LOCAL_TEMP_FOLDER/$CSR_FILE_NAME \
+        -keyout ${LOCAL_CERTS_FOLDER}/$KEY_FILE_NAME
+
+    RESULT=$?
+    if [[ $RESULT -eq 0 ]]; then
+        log_message "Succeeded creating keys."
+    else
+        log_message "Failed creating keys. Run cloudify-manager-down."
+        exit 1
+    fi
+
+    log_message "Creating certificates."
+    openssl x509 -days 3650 -sha256 -req \
+        -in $LOCAL_TEMP_FOLDER/$CSR_FILE_NAME \
+        -out ${LOCAL_CERTS_FOLDER}/$CERT_FILE_NAME \
+        -extensions server_req_extensions \
+        -extfile ${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME \
+        -CA ${LOCAL_CERTS_FOLDER}/root.crt \
+        -CAkey ${LOCAL_CERTS_FOLDER}/root.key -CAcreateserial
+
+    RESULT=$?
+    if [[ $RESULT -ne 0 ]]; then
+        log_message "Failed creating keys. Run cloudify-manager-down."
+        exit 1
+    fi
+
+}

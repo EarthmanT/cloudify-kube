@@ -1,0 +1,17 @@
+manager:
+  private_ip: PRIVATE_IP
+  public_ip: PRIVATE_IP
+  hostname: ''
+postgresql_server:
+  enable_remote_connections: true
+  postgres_password: admin
+  ssl_enabled: true
+ssl_inputs:
+  postgresql_server_cert_path: /etc/cloudify/ssl/postgresql_server.crt
+  postgresql_server_key_path: /etc/cloudify/ssl/postgresql_server.key
+  ca_cert_path: /etc/cloudify/ssl/root.crt
+  ca_key_path: /etc/cloudify/ssl/root.key
+services_to_install:
+  - database_service
+
+unconfigured_install: true

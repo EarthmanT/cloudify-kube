@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+source resource-utils
+source create-certificates
+source configure-pods
+
+
+# Create Manager Pods
+kubectl apply -f resources/
+
+log_message "Getting list of pods!"
+
+export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
+export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
+export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
+
+log_message "List of pods: ${POSTGRES_PODS}, ${RABBITMQ_PODS}, ${CFYWORKERPODS}"
+
+for POD in ${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS}; do
+    while true; do
+        is_pod_state $POD Running
+        RESULT=$?
+        if [[ "$RESULT" -ne 0 ]]; then
+            break
+        fi
+        sleep 5
+    done
+done
+
+# Create the Certificates and Keys
+create_csr_and_cert $POSTGRES_PODS postgresql server
+create_csr_and_cert $RABBITMQ_PODS rabbitmq server
+for POD in ${CFYWORKERPODS};
+do
+  create_csr_and_cert $POD worker client
+done
+
+# Configure the Pods
+configure_pod $POSTGRES_PODS postgresql
+configure_pod $RABBITMQ_PODS rabbitmq
+for POD in ${CFYWORKERPODS};
+do
+  configure_pod $POD worker
+done
+
+log_message "OK Done. Listing out the stuff we made:"
+
+kubectl get pv
+kubectl get pvc
+kubectl get deploy
+kubectl get po
+kubectl get svc
+
+log_message "FINISHED UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"

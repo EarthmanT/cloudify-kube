@@ -1,0 +1,13 @@
+manager:
+  private_ip: PRIVATE_IP
+  public_ip: PRIVATE_IP
+  hostname: ''
+rabbitmq:
+  ca_path: /etc/cloudify/ssl/root.crt
+  cert_path: /etc/cloudify/ssl/rabbitmq_server.crt
+  key_path: /etc/cloudify/ssl/rabbitmq_server.key
+  nodename: localhost
+services_to_install:
+  - queue_service
+
+unconfigured_install: true
