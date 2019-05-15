@@ -3,45 +3,27 @@
 source resource-utils
 source create-certificates
 source configure-pods
-source create-root-certificate
+
 
 # Create Manager Pods
-kubectl apply -f resources/
+# kubectl apply -f resources/
 
-log_message "Getting list of pods!"
+log_message "Ignore the last message, we are now....ADDING new pods!"
+
+export NEW_POD=$1
 
 export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
 export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
 export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
+export ACTIVE_WORKER_POD=$(kubectl get pods --sort-by=.metadata.creationTimestamp --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}' | head -n 1)
 
 log_message "List of pods: ${POSTGRES_PODS}, ${RABBITMQ_PODS}, ${CFYWORKERPODS}"
 
-for POD in ${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS}; do
-    while true; do
-        is_pod_state $POD Running
-        RESULT=$?
-        if [[ "$RESULT" -ne 0 ]]; then
-            break
-        fi
-        sleep 5
-    done
-done
-
 # Create the Certificates and Keys
-create_csr_and_cert $POSTGRES_PODS postgresql server
-create_csr_and_cert $RABBITMQ_PODS rabbitmq server
-for POD in ${CFYWORKERPODS};
-do
-  create_csr_and_cert $POD worker client
-done
+create_csr_and_cert $NEW_POD worker client
 
 # Configure the Pods
-configure_pod $POSTGRES_PODS postgresql
-configure_pod $RABBITMQ_PODS rabbitmq
-for POD in ${CFYWORKERPODS};
-do
-  configure_pod $POD worker
-done
+configure_pod $NEW_POD worker $ACTIVE_WORKER_POD
 
 log_message "OK Done. Listing out the stuff we made:"
 
@@ -51,4 +33,4 @@ kubectl get deploy
 kubectl get po
 kubectl get svc
 
-log_message "FINISHED UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+log_message "FINISHED UPPING ADDING NEW POD!!!!!!!!!"

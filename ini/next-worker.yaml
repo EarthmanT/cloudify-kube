@@ -1,0 +1,25 @@
+manager:
+  private_ip: PRIVATE_IP
+  public_ip: PUBLIC_IP
+  hostname: ''
+  security:
+    admin_username: admin
+networks: {}
+cluster: {active_manager_ip: ACTIVE_MANAGER}
+rabbitmq:
+  cluster_members: {localhost: {default: REPLACE_RABBIT_IP}}
+  ca_path: /etc/cloudify/ssl/root.crt
+postgresql_client:
+  # For external postgres installation, update accordingly
+  host: REPLACE_POSTGRESQL_IP
+  ssl_enabled: true
+  postgres_password: admin
+ssl_inputs:
+  postgresql_client_cert_path: /etc/cloudify/ssl/CERTIFICATENAME.crt
+  postgresql_client_key_path: /etc/cloudify/ssl/CERTIFICATENAME.key
+  ca_cert_path: /etc/cloudify/ssl/root.crt
+  ca_key_path: /etc/cloudify/ssl/root.key
+services_to_install:
+  - manager_service
+
+unconfigured_install: true
