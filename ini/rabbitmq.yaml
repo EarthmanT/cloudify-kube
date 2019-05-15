@@ -4,8 +4,8 @@ manager:
   hostname: ''
 rabbitmq:
   ca_path: /etc/cloudify/ssl/root.crt
-  cert_path: /etc/cloudify/ssl/rabbitmq_server.crt
-  key_path: /etc/cloudify/ssl/rabbitmq_server.key
+  cert_path: /etc/cloudify/ssl/CERTIFICATENAME.crt
+  key_path: /etc/cloudify/ssl/CERTIFICATENAME.key
   nodename: localhost
 services_to_install:
   - queue_service

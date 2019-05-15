@@ -42,8 +42,8 @@ create_csr_and_cert () {
     log_message "Exporting variables."
     export CSR_CONFIG_FILE_NAME=csr_config_${COMPONENT}
     export CSR_FILE_NAME=csr_config_${PODNAME}_out.csr
-    export CERT_FILE_NAME=${COMPONENT}_${SERVER}.crt
-    export KEY_FILE_NAME=${COMPONENT}_${SERVER}.key
+    export CERT_FILE_NAME=${PODNAME}.crt
+    export KEY_FILE_NAME=${PODNAME}.key
     log_message "Getting the IP of ${COMPONENT} service."
     export SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
     log_message "${COMPONENT} service IP: ${SERVICE_IP}"

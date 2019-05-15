@@ -14,8 +14,8 @@ postgresql_client:
   ssl_enabled: true
   postgres_password: admin
 ssl_inputs:
-  postgresql_client_cert_path: /etc/cloudify/ssl/worker_client.crt
-  postgresql_client_key_path: /etc/cloudify/ssl/worker_client.key
+  postgresql_client_cert_path: /etc/cloudify/ssl/CERTIFICATENAME.crt
+  postgresql_client_key_path: /etc/cloudify/ssl/CERTIFICATENAME.key
   ca_cert_path: /etc/cloudify/ssl/root.crt
   ca_key_path: /etc/cloudify/ssl/root.key
 services_to_install:
