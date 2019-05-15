@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloudify-manager-postgresql-claim
+  labels:
+    app: cloudify-manager
+    component: postgresql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cloudify-manager-postgresql-data-claim
+  labels:
+    app: cloudify-manager
+    component: postgresql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudify-manager-postgresql
+  labels:
+    app: cloudify-manager
+    component: postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudify-manager
+      component: postgresql
+  template:
+    metadata:
+      labels:
+        app: cloudify-manager
+        component: postgresql
+    spec:
+      containers:
+        - name: cloudify-manager-postgresql
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+            - containerPort: 53333
+              hostPort: 53333
+          image: eu.gcr.io/trammell-project/docker-cfy-manager-postgresql
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              add: ["SYS_ADMIN"]
+          volumeMounts:
+            - mountPath: /run
+              name: pg-tmpfs-run
+            - mountPath: /run/user/
+              name: pg-tmpfs-run-user
+            - mountPath: /run/lock
+              name: pg-tmpfs-run-lock
+            - mountPath: /sys/fs/cgroup
+              readOnly: True
+              name: cgroup
+            - mountPath: "/tmp"
+              name: cloudify-manager-postgresql-volume
+            - mountPath: "/var/lib/pgsql/9.5/"
+              name: cloudify-manager-postgresql-data-volume
+      volumes:
+        - name: pg-tmpfs-run
+          emptyDir: {}
+        - name: pg-tmpfs-run-user
+          emptyDir: {}
+        - name: pg-tmpfs-run-lock
+          emptyDir: {}
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: cloudify-manager-postgresql-volume
+          persistentVolumeClaim:
+           claimName: cloudify-manager-postgresql-claim
+        - name: cloudify-manager-postgresql-data-volume
+          persistentVolumeClaim:
+           claimName: cloudify-manager-postgresql-data-claim
+---
+# cloudify-manager-postgres.default.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudify-manager-postgresql
+  labels:
+    app: cloudify-manager
+    component: postgresql
+spec:
+  selector:
+    app: cloudify-manager
+    component: postgresql
+  ports:
+    - name: postgress
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+    - name: pg-fileserver
+      protocol: TCP
+      port: 53333

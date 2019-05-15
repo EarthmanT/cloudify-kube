@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+is_pod_state () {
+
+    export POD_NAME=$1
+    export EXPECTED_STATE=$2
+    echo "                Checking pod state: ${POD_NAME}."
+
+
+
+
+    kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}'
+    RESULT=$?
+    if [[ "${RESULT}" = "${EXPECTED_STATE}" ]]; then
+        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+        return 0
+    else
+        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} not achieved."
+        return 1
+    fi
+
+}
+
+fail_on_fatal () {
+
+    log_message "Executing command: ${@}."
+    $@
+    RESULT=$1
+    if [[ ${RESULT} -eq 0 ]]; then
+        log_message "Command succeeded!"
+    else
+        log_message "Command failed! Troubleshoot or execute cloudify-manager-down."
+        exit 1
+    fi
+
+}
+
+retry_command () {
+
+    log_message "Executing command: ${@}."
+
+    n=0
+    until [[ ${n} -ge 5 ]]
+    do
+        $@
+        RESULT=$?
+        if [[ ${RESULT} -eq 0 ]]; then
+            break
+        fi
+        n=$[$n+1]
+        sleep 10
+    done
+
+    if [[ ${RESULT} -ne 0 ]]; then
+        echo ">>>>>>>>>> DEBUG: Command Failed! ${COMMAND}"
+        exit 1
+    fi
+
+    log_message "Command succeeded!"
+
+}
+
+retry_get_private_ip () {
+
+    n=0
+    until [[ ${n} -ge 10 ]]
+    do
+        PRIVATE_IP=$(kubectl get pod ${POD_NAME} --template=\{\{.status.podIP\}\})
+        if [[ $PRIVATE_IP != "<no value>" ]]; then
+            break
+        fi
+        n=$[$n+1]
+        sleep 5
+    done
+
+    echo "${PRIVATE_IP}"
+
+}
+
+log_message () {
+    MESSAGE=$1
+    echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
+}
+
+copy_certificates_to_pod () {
+
+    export PODPATH=$1
+
+    for filename in `ls ${LOCAL_CERTS_FOLDER}`
+    do
+        kubectl cp ${filename} ${PODPATH}:${FINAL_CERTS_FOLDER}/${filename}
+    done
+
+}
+
+log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"

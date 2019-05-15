@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+source resource-utils
+
+log_message "IGNORE THAT LAST MESSAGE. WE ARE.......TEARING DOWN EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
+kubectl delete deploy -l app=cloudify-manager
+kubectl delete po -l app=cloudify-manager
+kubectl delete svc -l app=cloudify-manager
+kubectl delete pvc -l app=cloudify-manager
+kubectl delete pv --all
+kubectl delete secret root-crt
+kubectl delete secret root-key
+
+log_message "FINISHED TEARING DOWN EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"

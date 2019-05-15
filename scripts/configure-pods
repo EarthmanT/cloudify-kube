@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+function configure_pod {
+
+    export POD_NAME=$1
+    export COMPONENT=$2
+
+    log_message "Configuring pod ${POD_NAME}."
+
+    export INI_PATH=ini/${COMPONENT}.yaml
+    export TARGET_PATH_DIR=default/${POD_NAME}:/etc/cloudify
+
+    log_message "Trying to get the IP of ${POD_NAME}."
+    export PRIVATE_IP=$(retry_get_private_ip $POD_NAME)
+    log_message "IP address is ${PRIVATE_IP}."
+    export SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
+    log_message "IP address is ${SERVICE_IP}."
+
+    log_message "Running sed on config files."
+    sed -i "s|PRIVATE_IP|$PRIVATE_IP|g" ${INI_PATH}
+    sed -i "s|PUBLIC_IP|$SERVICE_IP|g" ${INI_PATH}
+
+    RABBIT_IP=$(kubectl get services cloudify-manager-rabbitmq | awk '{if(NR>1)print $3}')
+    sed -i "s|REPLACE_RABBIT_IP|$RABBIT_IP|g" ${INI_PATH}
+    # There is an additional string to replace in the worker for DB IP.
+    PG_IP=$(kubectl get services cloudify-manager-postgresql | awk '{if(NR>1)print $3}')
+    sed -i "s|REPLACE_POSTGRESQL_IP|$PG_IP|g" ${INI_PATH}
+
+    log_message "Copying config file: ${INI_PATH} ${TARGET_PATH_DIR}/config.yaml"
+    retry_command "kubectl cp ${INI_PATH} ${TARGET_PATH_DIR}/config.yaml"
+    kubectl exec -it ${POD_NAME} -- chown cfyuser:cfyuser /etc/cloudify/config.yaml
+    log_message "Copying SSL."
+    retry_command "kubectl cp ${LOCAL_CERTS_FOLDER} ${TARGET_PATH_DIR}/ssl"
+    kubectl exec -it ${POD_NAME} -- chown cfyuser:cfyuser ${TARGET_PATH_DIR}/ssl/*.*
+    # This command has a problem with protection. TODO: Fix it.
+    kubectl exec -it ${POD_NAME} -- cfy_manager configure
+
+}
+

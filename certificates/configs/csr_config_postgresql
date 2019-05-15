@@ -1,0 +1,8 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = server_req_extensions
+[ server_req_extensions ]
+subjectAltName=DNS:REPLACE_IP,IP:REPLACE_IP
+[ req_distinguished_name ]
+commonName = _common_name # ignored, _default is used instead
+commonName_default = REPLACE_IP
