@@ -6,15 +6,14 @@ configure_pod () {
     COMPONENT=$2
     INI_PATH=ini/${COMPONENT}.yaml
 
-    log_message "Configuring pod ${POD_NAME}."
-
     TARGET_PATH_DIR=default/${POD_NAME}:/etc/cloudify
 
     set_active_manager_ip ${POD_NAME}
+
     if [[ -z "${ACTIVE_MANAGER_IP}" ]]; then
-        log_message "Creating first cluster member."
+        log_message "Configuring pod ${POD_NAME}."
     else
-        log_message "Adding cluster member. Active Manager IP address is ${ACTIVE_MANAGER_IP}."
+        log_message "Configuring pod ${POD_NAME} and adding to active-active manager cluster member. Active Manager IP address is ${ACTIVE_MANAGER_IP}."
         INI_PATH=ini/next-worker.yaml
     fi
 
@@ -47,8 +46,8 @@ configure_pod () {
     retry_command "kubectl cp ${LOCAL_CERTS_FOLDER} ${TARGET_PATH_DIR}/ssl"
 
     # This command has a problem with protection. TODO: Fix it.
+    hack_license ${POD_NAME} ${PG_IP}
     kubectl exec -it ${POD_NAME} -- cfy_manager configure
-    hack_license
 
 }
 
