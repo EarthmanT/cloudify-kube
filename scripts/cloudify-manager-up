@@ -5,6 +5,8 @@ source create-certificates
 source configure-pods
 source create-root-certificate
 
+log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
 # Create Manager Pods
 kubectl apply -f resources/
 

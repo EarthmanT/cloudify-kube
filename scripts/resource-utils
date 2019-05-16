@@ -94,5 +94,3 @@ copy_certificates_to_pod () {
     done
 
 }
-
-log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
