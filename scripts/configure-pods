@@ -53,3 +53,15 @@ function configure_pod {
 
 }
 
+configure_all_pods () {
+    export _ALL_PODS=($@)
+    for POD in "${_ALL_PODS[@]}"; do
+        log_message "Configuring ${POD}."
+        case ${POD} in
+            (*"postgresql"*) configure_pod ${POD} postgresql;;
+            (*"rabbitmq"*) configure_pod ${POD} rabbitmq;;
+            (*"worker"*) configure_pod ${POD} worker;;
+            (*) log_message "Bad pod name: ${POD}."; exit
+        esac
+    done
+}

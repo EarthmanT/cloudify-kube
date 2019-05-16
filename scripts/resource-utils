@@ -108,3 +108,10 @@ check_pods_ready () {
     done
 
 }
+
+set_all_pods () {
+    export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
+    export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
+    export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
+    export ALL_PODS=(${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS})
+}
