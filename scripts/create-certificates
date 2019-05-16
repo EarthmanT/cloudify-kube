@@ -69,3 +69,16 @@ create_csr_and_cert () {
     fi
 
 }
+
+certify_pods () {
+    export _ALL_PODS=($@)
+    for POD in "${_ALL_PODS[@]}"; do
+        log_message "Creating pod ${POD} certificate."
+        case ${POD} in
+            (*"postgresql"*) create_csr_and_cert ${POD} postgresql server;;
+            (*"rabbitmq"*) create_csr_and_cert ${POD} rabbitmq server;;
+            (*"worker"*) create_csr_and_cert ${POD} worker client;;
+            (*) log_message "Bad pod name: ${POD}."; exit
+        esac
+    done
+}

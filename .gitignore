@@ -1,3 +1,4 @@
 .DS_Store
-certificates/{temp,results}/*
+certificates/temp/*
+certificates/results/*
 ini/*.copy

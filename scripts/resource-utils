@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
 
+log_message () {
+    MESSAGE=$1
+    echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
+}
+
 is_pod_state () {
 
     export POD_NAME=$1
     export EXPECTED_STATE=$2
-    echo "                Checking pod state: ${POD_NAME}."
+    log_message "Checking pod ${POD_NAME} expected state: ${EXPECTED_STATE}."
 
+    RESULT=$(kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}')
 
-
-
-    kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}'
-    RESULT=$?
-    if [[ "${RESULT}" = "${EXPECTED_STATE}" ]]; then
-        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+    if [[ "${RESULT}" = *"${EXPECTED_STATE}"* ]]; then
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
         return 0
     else
-        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} not achieved."
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} not achieved."
         return 1
     fi
 
@@ -52,7 +54,7 @@ retry_command () {
     done
 
     if [[ ${RESULT} -ne 0 ]]; then
-        echo ">>>>>>>>>> DEBUG: Command Failed! ${COMMAND}"
+        log_message "Command Failed! ${COMMAND}"
         exit 1
     fi
 
@@ -79,11 +81,6 @@ retry_get_private_ip () {
 
 }
 
-log_message () {
-    MESSAGE=$1
-    echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
-}
-
 copy_certificates_to_pod () {
 
     export PODPATH=$1
@@ -97,14 +94,14 @@ copy_certificates_to_pod () {
 
 check_pods_ready () {
 
-    export _ALL_PODS=$@
+    export _ALL_PODS=($@)
 
     for POD in "${_ALL_PODS[@]}"; do
         while true; do
             is_pod_state ${POD} Running
             RESULT=$?
-            if [[ "$RESULT" -ne 0 ]]; then
-                break
+            if [[ ${RESULT} -eq 0 ]]; then
+                break 1
             fi
             sleep 5
         done

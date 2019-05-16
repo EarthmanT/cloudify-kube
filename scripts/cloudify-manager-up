@@ -16,18 +16,22 @@ export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --select
 export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
 export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
 
-export ALL_PODS=($POSTGRES_PODS $RABBITMQ_PODS $CFYWORKERPODS)
+export ALL_PODS=(${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS})
 
+# For some reason this only prints out the last item.
 log_message "List of pods: ${ALL_PODS[@]}."
 
 check_pods_ready ${ALL_PODS[@]}
+certify_pods ${ALL_PODS[@]}
+
+exit
 
 # Create the Certificates and Keys
 create_csr_and_cert $POSTGRES_PODS postgresql server
 create_csr_and_cert $RABBITMQ_PODS rabbitmq server
 for POD in ${CFYWORKERPODS};
 do
-  create_csr_and_cert $POD worker client
+    create_csr_and_cert $POD worker client
 done
 
 # Configure the Pods
@@ -35,7 +39,7 @@ configure_pod $POSTGRES_PODS postgresql
 configure_pod $RABBITMQ_PODS rabbitmq
 for POD in ${CFYWORKERPODS};
 do
-  configure_pod $POD worker
+    configure_pod $POD worker
 done
 
 log_message "OK Done. Listing out the stuff we made:"
