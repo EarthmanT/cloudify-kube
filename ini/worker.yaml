@@ -1,6 +1,6 @@
 manager:
   private_ip: PRIVATE_IP
-  public_ip: PUBLIC_IP
+  public_ip: PRIVATE_IP
   hostname: ''
   security:
     admin_username: admin
