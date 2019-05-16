@@ -14,7 +14,9 @@ function configure_pod {
     if [[ -z "${3}" ]]; then
         export ACTIVE_NODE=""
     else
-        export ACTIVE_NODE=$3
+        export ACTIVE_MANAGER_IP=$3
+        log_message "Active Manager IP address is ${ACTIVE_MANAGER_IP}."
+        export ACTIVE_PASSWORD=$4
         export INI_PATH=ini/next-worker.yaml
     fi
 
@@ -23,15 +25,16 @@ function configure_pod {
 
     log_message "Trying to get the IP of ${POD_NAME}."
     export PRIVATE_IP=$(retry_get_private_ip $POD_NAME)
-    log_message "IP address is ${PRIVATE_IP}."
+    log_message "Private IP address is ${PRIVATE_IP}."
     export SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
-    log_message "IP address is ${SERVICE_IP}."
+    log_message "Service IP address is ${SERVICE_IP}."
 
     log_message "Running sed on config files."
     sed -i "s|PRIVATE_IP|$PRIVATE_IP|g" ${INI_PATH}
     sed -i "s|PUBLIC_IP|$SERVICE_IP|g" ${INI_PATH}
     sed -i "s|CERTIFICATENAME|$POD_NAME|g" ${INI_PATH}
-    sed -i "s|ACTIVE_MANAGER|$ACTIVE_NODE|g" ${INI_PATH}
+    sed -i "s|ACTIVE_MANAGER_IP|$ACTIVE_MANAGER_IP|g" ${INI_PATH}
+    sed -i "s|ACTIVE_PASSWORD|$ACTIVE_PASSWORD|g" ${INI_PATH}
 
     RABBIT_IP=$(kubectl get services cloudify-manager-rabbitmq | awk '{if(NR>1)print $3}')
     sed -i "s|REPLACE_RABBIT_IP|$RABBIT_IP|g" ${INI_PATH}

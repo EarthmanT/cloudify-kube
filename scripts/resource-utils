@@ -62,11 +62,13 @@ retry_command () {
 
 retry_get_private_ip () {
 
+    POD_NAME=$1
+
     n=0
     until [[ ${n} -ge 10 ]]
     do
         PRIVATE_IP=$(kubectl get pod ${POD_NAME} --template=\{\{.status.podIP\}\})
-        if [[ $PRIVATE_IP != "<no value>" ]]; then
+        if [[ ${PRIVATE_IP} != "<no value>" ]]; then
             break
         fi
         n=$[$n+1]

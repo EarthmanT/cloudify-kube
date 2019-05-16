@@ -4,8 +4,9 @@ manager:
   hostname: ''
   security:
     admin_username: admin
+    admin_password: ACTIVE_PASSWORD
 networks: {}
-cluster: {active_manager_ip: ACTIVE_MANAGER}
+cluster: {active_manager_ip: ACTIVE_MANAGER_IP}
 rabbitmq:
   cluster_members: {localhost: {default: REPLACE_RABBIT_IP}}
   ca_path: /etc/cloudify/ssl/root.crt
