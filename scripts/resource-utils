@@ -94,3 +94,20 @@ copy_certificates_to_pod () {
     done
 
 }
+
+check_pods_ready () {
+
+    export _ALL_PODS=$@
+
+    for POD in "${_ALL_PODS[@]}"; do
+        while true; do
+            is_pod_state ${POD} Running
+            RESULT=$?
+            if [[ "$RESULT" -ne 0 ]]; then
+                break
+            fi
+            sleep 5
+        done
+    done
+
+}
