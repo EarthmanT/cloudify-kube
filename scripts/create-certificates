@@ -11,34 +11,33 @@ create_csr_and_cert () {
         log_message "You must provide a Pod name as a first argument."
         exit 1
     else
-        export PODNAME=$1
+        PODNAME=$1
     fi
 
     if [[ -z "${2}" ]]; then
         log_message "You must provide a component name as a second argument."
         exit 1
     else
-        export COMPONENT=$2
+        COMPONENT=$2
     fi
 
     if [[ -z "${3}" ]]; then
-        export SERVER=server
+        SERVER=server
     else
-        export SERVER=$3
+        SERVER=$3
     fi
 
     log_message "Creating certs and keys for component ${COMPONENT}."
 
     log_message "Exporting variables."
-    export CSR_CONFIG_FILE_NAME=csr_config_${COMPONENT}
-    export CSR_FILE_NAME=csr_config_${PODNAME}_out.csr
-    export CERT_FILE_NAME=${PODNAME}.crt
-    export KEY_FILE_NAME=${PODNAME}.key
+    CSR_CONFIG_FILE_NAME=csr_config_${COMPONENT}
+    CSR_FILE_NAME=csr_config_${PODNAME}_out.csr
+    CERT_FILE_NAME=${PODNAME}.crt
+    KEY_FILE_NAME=${PODNAME}.key
     log_message "Getting the IP of ${COMPONENT} service."
-    export SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
+    SERVICE_IP=$(kubectl get services cloudify-manager-$COMPONENT | awk '{if(NR>1)print $3}')
     log_message "${COMPONENT} service IP: ${SERVICE_IP}"
-    log_message "Running sed on CSR configs."
-    sed -i "s|REPLACE_IP|$SERVICE_IP|g" ${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME
+    replace_string REPLACE_IP ${SERVICE_IP} "${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME"
     log_message "Creating keys."
     openssl req -newkey rsa:2048 -nodes -batch -sha256 \
         -config ${LOCAL_CONFIG_FOLDER}/$CSR_CONFIG_FILE_NAME \
@@ -71,7 +70,7 @@ create_csr_and_cert () {
 }
 
 certify_pods () {
-    export _ALL_PODS=($@)
+    _ALL_PODS=($@)
     for POD in "${_ALL_PODS[@]}"; do
         log_message "Creating pod ${POD} certificate."
         case ${POD} in

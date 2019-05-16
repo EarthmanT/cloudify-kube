@@ -5,32 +5,11 @@ source create-certificates
 source configure-pods
 source create-root-certificate
 
-log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+set_cloudify_manager_defaults
 
-# Create Manager Pods
-kubectl apply -f resources/
-
-log_message "Getting list of pods!"
-
-export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
-export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
-export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
-
-set_all_pods
-
-# For some reason this only prints out the last item.
-log_message "List of pods: ${ALL_PODS[@]}."
-
+setup_all_pods
 check_pods_ready ${ALL_PODS[@]}
 certify_pods ${ALL_PODS[@]}
 configure_all_pods ${ALL_PODS[@]}
 
-log_message "OK Done. Listing out the stuff we made:"
-
-kubectl get pv
-kubectl get pvc
-kubectl get deploy
-kubectl get po
-kubectl get svc
-
-log_message "FINISHED UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+final_log_message

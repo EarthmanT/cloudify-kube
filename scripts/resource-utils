@@ -1,14 +1,41 @@
 #!/usr/bin/env bash
 
 log_message () {
-    MESSAGE=$1
+
+    MESSAGE=$@
     echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
+
+}
+
+set_cloudify_manager_defaults () {
+
+    if [[ -z "${ADMIN_PASSWORD}" ]]; then
+        export ADMIN_PASSWORD=admin
+    fi
+
+}
+
+setup_all_pods () {
+
+    log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
+    kubectl apply -f resources/
+
+    log_message "Setting ALL_PODS variable!"
+
+    export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
+    export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
+    export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
+    export ALL_PODS=(${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS})
+
+    log_message "Set ALL_PODS variable: ${ALL_PODS}!"
+
 }
 
 is_pod_state () {
 
-    export POD_NAME=$1
-    export EXPECTED_STATE=$2
+    POD_NAME=$1
+    EXPECTED_STATE=$2
     log_message "Checking pod ${POD_NAME} expected state: ${EXPECTED_STATE}."
 
     RESULT=$(kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}')
@@ -83,18 +110,24 @@ retry_get_private_ip () {
 
 copy_certificates_to_pod () {
 
-    export PODPATH=$1
+    log_message "Copying certificates."
+
+    PODPATH=$1
 
     for filename in `ls ${LOCAL_CERTS_FOLDER}`
     do
         kubectl cp ${filename} ${PODPATH}:${FINAL_CERTS_FOLDER}/${filename}
     done
 
+    log_message "Copied certificates."
+
 }
 
 check_pods_ready () {
 
-    export _ALL_PODS=($@)
+    _ALL_PODS=($@)
+
+    log_message "Checking that all pods are ready."
 
     for POD in "${_ALL_PODS[@]}"; do
         while true; do
@@ -107,11 +140,68 @@ check_pods_ready () {
         done
     done
 
+    log_message "All pods are ready."
+
 }
 
-set_all_pods () {
-    export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
-    export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
-    export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
-    export ALL_PODS=(${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS})
+replace_string () {
+
+    ORIGINAL=$1
+    NEW=$2
+    FILEPATH=$3
+
+    if [[ -z "${ORIGINAL}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    elif [[ -z "${NEW}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    elif [[ -z "${FILEPATH}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    else
+        log_message "Replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+        sed -i "s|$ORIGINAL|$NEW|g" ${FILEPATH}
+    fi
+
+}
+
+final_log_message () {
+
+    log_message "OK Done. Listing out the stuff we made:"
+
+    kubectl get pv
+    kubectl get pvc
+    kubectl get deploy
+    kubectl get po
+    kubectl get svc
+
+    log_message "FINISHED UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
+}
+
+set_active_manager_ip () {
+
+    CURRENT_POD=$1
+    ACTIVE_WORKER_POD=$(kubectl get pods --sort-by=.metadata.creationTimestamp --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}' | head -n 1)
+
+    if [[ "${CURRENT_POD}" != *"cloudify-manager-worker"* ]]; then
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+    elif [[ "${CURRENT_POD}" = "${ACTIVE_WORKER_POD}" ]]; then
+        log_message "Current Pod ${CURRENT_POD} is active management worker ${ACTIVE_WORKER_POD}."
+        unset ACTIVE_MANAGER_IP
+    else
+        log_message "Current Pod ${CURRENT_POD} is not active management worker ${ACTIVE_WORKER_POD}."
+        export ACTIVE_MANAGER_IP=$(retry_get_private_ip $ACTIVE_WORKER_POD)
+    fi
+
+}
+
+hack_license () {
+
+    if [[ -z "${ACTIVE_MANAGER_IP}" ]]; then
+        kubectl exec $POD_NAME -- bash -c "psql -d cloudify_db -h localhost -U cloudify && \
+            \c && \
+            INSERT INTO licenses \
+            (customer_id, expiration_date, license_edition, trial, cloudify_version) \
+            VALUES ('default_tenant', '2020-06-22 19:10:25-07', 'license', TRUE, '5.0');"
+    fi
+
 }

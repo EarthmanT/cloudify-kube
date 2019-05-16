@@ -4,6 +4,7 @@ manager:
   hostname: ''
   security:
     admin_username: admin
+    admin_password: ADMIN_PASSWORD
 networks: {}
 rabbitmq:
   cluster_members: {localhost: {default: REPLACE_RABBIT_IP}}
