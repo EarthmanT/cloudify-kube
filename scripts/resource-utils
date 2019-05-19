@@ -199,15 +199,15 @@ hack_license () {
     POD_NAME=$1
     IP=$2
 
-    if [[ "${POD_NAME}" != *"cloudify-manager-worker"* ]]; then
-        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
-    elif [[ -z "${ACTIVE_MANAGER_IP}" ]]; then
+    if [[ "${POD_NAME}" == *"cloudify-manager-postgresql"* ]]; then
         replace_string "local   all             all                                     peer" "local   all             all                                     trust" /var/lib/pgsql/9.5/data/pg_hba.conf
         kubectl exec -it ${POD_NAME} -- systemctl restart postgresql-9.5.service
+    elif [[ "${POD_NAME}" != *"cloudify-manager-worker"* ]]; then
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+    elif [[ -z "${ACTIVE_MANAGER_IP}" ]]; then
         kubectl exec -it ${POD_NAME} -- bash -c "PGPASSWORD=admin psql --host=${IP} --username=cloudify --dbname=cloudify_db && \\c && INSERT INTO licenses \(customer_id, expiration_date, license_edition, trial, cloudify_version\) VALUES \('default_tenant', '2020-06-22 19:10:25-07', 'license', TRUE, '5.0'\);"
     else
         log_message "Not setting up license."
     fi
 
 }
-
