@@ -7,8 +7,8 @@ postgresql_server:
   postgres_password: admin
   ssl_enabled: true
 ssl_inputs:
-  postgresql_server_cert_path: /etc/cloudify/ssl/postgresql_server.crt
-  postgresql_server_key_path: /etc/cloudify/ssl/postgresql_server.key
+  postgresql_server_cert_path: /etc/cloudify/ssl/CERTIFICATENAME.crt
+  postgresql_server_key_path: /etc/cloudify/ssl/CERTIFICATENAME.key
   ca_cert_path: /etc/cloudify/ssl/root.crt
   ca_key_path: /etc/cloudify/ssl/root.key
 services_to_install:

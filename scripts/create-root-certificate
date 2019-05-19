@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+log_message "Creating CA"
+
+openssl req -x509 -nodes -newkey rsa:2048 -days 3650 -batch \
+    -out ${LOCAL_CERTS_FOLDER}/root.crt \
+    -keyout ${LOCAL_CERTS_FOLDER}/root.key
+
+    kubectl create secret generic root-crt --from-file=${LOCAL_CERTS_FOLDER}/root.crt
+    kubectl create secret generic root-key --from-file=${LOCAL_CERTS_FOLDER}/root.key

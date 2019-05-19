@@ -1,21 +1,50 @@
 #!/usr/bin/env bash
 
+log_message () {
+
+    MESSAGE=$@
+    echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
+
+}
+
+set_cloudify_manager_defaults () {
+
+    if [[ -z "${ADMIN_PASSWORD}" ]]; then
+        export ADMIN_PASSWORD=admin
+    fi
+
+}
+
+setup_all_pods () {
+
+    log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
+    kubectl apply -f resources/
+
+    log_message "Setting ALL_PODS variable!"
+
+    export POSTGRES_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=postgresql | awk '{if(NR>1)print $1}')
+    export RABBITMQ_PODS=$(kubectl get pods --selector app=cloudify-manager --selector component=rabbitmq | awk '{if(NR>1)print $1}')
+    export CFYWORKERPODS=$(kubectl get pods --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}')
+    export ALL_PODS=(${POSTGRES_PODS} ${RABBITMQ_PODS} ${CFYWORKERPODS})
+
+    log_message "Set ALL_PODS variable: ${ALL_PODS[@]}!"
+
+}
+
 is_pod_state () {
 
-    export POD_NAME=$1
-    export EXPECTED_STATE=$2
-    echo "                Checking pod state: ${POD_NAME}."
+    POD_NAME=$1
+    EXPECTED_STATE=$2
+    log_message "Checking pod ${POD_NAME} expected state: ${EXPECTED_STATE}."
 
+    RESULT=$(kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}')
 
-
-
-    kubectl get po ${POD_NAME} | awk '{if(NR>1)print $3}'
-    RESULT=$?
-    if [[ "${RESULT}" = "${EXPECTED_STATE}" ]]; then
-        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+    if [[ "${RESULT}" = *"${EXPECTED_STATE}"* ]]; then
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
         return 0
     else
-        echo "Debug: Expected pod ${POD_NAME} state ${EXPECTED_STATE} not achieved."
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} not achieved."
         return 1
     fi
 
@@ -52,7 +81,7 @@ retry_command () {
     done
 
     if [[ ${RESULT} -ne 0 ]]; then
-        echo ">>>>>>>>>> DEBUG: Command Failed! ${COMMAND}"
+        log_message "Command Failed! ${COMMAND}"
         exit 1
     fi
 
@@ -62,11 +91,13 @@ retry_command () {
 
 retry_get_private_ip () {
 
+    POD_NAME=$1
+
     n=0
     until [[ ${n} -ge 10 ]]
     do
         PRIVATE_IP=$(kubectl get pod ${POD_NAME} --template=\{\{.status.podIP\}\})
-        if [[ $PRIVATE_IP != "<no value>" ]]; then
+        if [[ ${PRIVATE_IP} != "<no value>" ]]; then
             break
         fi
         n=$[$n+1]
@@ -77,20 +108,100 @@ retry_get_private_ip () {
 
 }
 
-log_message () {
-    MESSAGE=$1
-    echo ">>>>>>>>>>DEBUG: ${MESSAGE}<<<<<<<<<<"
-}
-
 copy_certificates_to_pod () {
 
-    export PODPATH=$1
+    log_message "Copying certificates."
+
+    PODPATH=$1
 
     for filename in `ls ${LOCAL_CERTS_FOLDER}`
     do
         kubectl cp ${filename} ${PODPATH}:${FINAL_CERTS_FOLDER}/${filename}
     done
 
+    log_message "Copied certificates."
+
 }
 
-log_message "UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+check_pods_ready () {
+
+    _ALL_PODS=($@)
+
+    log_message "Checking that all pods are ready."
+
+    for POD in "${_ALL_PODS[@]}"; do
+        while true; do
+            is_pod_state ${POD} Running
+            RESULT=$?
+            if [[ ${RESULT} -eq 0 ]]; then
+                break 1
+            fi
+            sleep 5
+        done
+    done
+
+    log_message "All pods are ready."
+
+}
+
+replace_string () {
+
+    ORIGINAL=$1
+    NEW=$2
+    FILEPATH=$3
+
+    if [[ -z "${ORIGINAL}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    elif [[ -z "${NEW}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    elif [[ -z "${FILEPATH}" ]]; then
+        log_message "Not replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+    else
+        log_message "Replacing ${ORIGINAL} with ${NEW} in ${FILEPATH}."
+        sed -i "s|$ORIGINAL|$NEW|g" ${FILEPATH}
+    fi
+
+}
+
+final_log_message () {
+
+    log_message "OK Done. Listing out the stuff we made:"
+
+    kubectl get pv
+    kubectl get pvc
+    kubectl get deploy
+    kubectl get po
+    kubectl get svc
+
+    log_message "FINISHED UPPING EVERYTHING RELATED TO CLOUDIFY!!!!!!!!!"
+
+}
+
+set_active_manager_ip () {
+
+    CURRENT_POD=$1
+    ACTIVE_WORKER_POD=$(kubectl get pods --sort-by=.metadata.creationTimestamp --selector app=cloudify-manager --selector component=worker | awk '{if(NR>1)print $1}' | head -n 1)
+
+    if [[ "${CURRENT_POD}" != *"cloudify-manager-worker"* ]]; then
+        log_message "Expected pod ${POD_NAME} state ${EXPECTED_STATE} achieved."
+    elif [[ "${CURRENT_POD}" = "${ACTIVE_WORKER_POD}" ]]; then
+        log_message "Current Pod ${CURRENT_POD} is active management worker ${ACTIVE_WORKER_POD}."
+        unset ACTIVE_MANAGER_IP
+    else
+        log_message "Current Pod ${CURRENT_POD} is not active management worker ${ACTIVE_WORKER_POD}."
+        export ACTIVE_MANAGER_IP=$(retry_get_private_ip $ACTIVE_WORKER_POD)
+    fi
+
+}
+
+upload_license () {
+
+    POD_NAME=$1
+
+    log_message "Uploading License File."
+    if [[ "${POD_NAME}" = *"cloudify-manager-worker"* ]]; then
+        kubectl cp license.yaml default/${POD_NAME}:/etc/cloudify/license.yaml
+    fi
+    log_message "Uploaded License File."
+
+}

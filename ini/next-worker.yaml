@@ -5,8 +5,8 @@ manager:
   security:
     admin_username: admin
     admin_password: ADMIN_PASSWORD
-  cloudify_license_path: /etc/cloudify/license.yaml
 networks: {}
+cluster: {active_manager_ip: ACTIVE_MANAGER_IP}
 rabbitmq:
   cluster_members: {localhost: {default: REPLACE_RABBIT_IP}}
   ca_path: /etc/cloudify/ssl/root.crt
