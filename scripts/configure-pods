@@ -46,7 +46,6 @@ configure_pod () {
     retry_command "kubectl cp ${LOCAL_CERTS_FOLDER} ${TARGET_PATH_DIR}/ssl"
 
     # This command has a problem with protection. TODO: Fix it.
-    hack_license ${POD_NAME} ${PG_IP}
     kubectl exec -it ${POD_NAME} -- cfy_manager configure
 
 }
