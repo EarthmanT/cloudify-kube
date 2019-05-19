@@ -1,14 +1,31 @@
 #!/usr/bin/env bash
 
+# Only run this if the latest version is not available:
+
 wget https://s3-eu-west-1.amazonaws.com/cloudify-release-eu/cloudify/5.0.0/.dev1-release/cloudify-manager_worker-docker-5.0.0.dev1.tar
-docker tag cloudify-manager_worker-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-worker:latest
-docker push cloudify-manager_worker-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-worker:latest
+docker load -i cloudify-manager_worker-docker-5.0.0.dev1.tar
+sleep 1
+docker tag docker-cfy-manager-worker eu.gcr.io/trammell-project/docker-cfy-manager-worker:latest
+sleep 1
+docker push eu.gcr.io/trammell-project/docker-cfy-manager-worker:latest
+rm cloudify-manager_worker-docker-5.0.0.dev1.tar
+docker rmi docker-cfy-manager-worker eu.gcr.io/trammell-project/docker-cfy-manager-worker:latest
 
 wget https://s3-eu-west-1.amazonaws.com/cloudify-release-eu/cloudify/5.0.0/.dev1-release/cloudify-rabbitmq-docker-5.0.0.dev1.tar
-docker tag cloudify-rabbitmq-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-rabbitmq:latest
-docker push cloudify-rabbitmq-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-rabbitmq:latest
+docker load -i cloudify-rabbitmq-docker-5.0.0.dev1.tar
+sleep 1
+docker tag docker-cfy-manager-rabbitmq eu.gcr.io/trammell-project/docker-cfy-manager-rabbitmq:latest
+sleep 1
+docker push eu.gcr.io/trammell-project/docker-cfy-manager-rabbitmq:latest
+rm cloudify-rabbitmq-docker-5.0.0.dev1.tar
+docker rmi docker-cfy-manager-rabbitmq eu.gcr.io/trammell-project/docker-cfy-manager-rabbitmq:latest
 
 wget https://s3-eu-west-1.amazonaws.com/cloudify-release-eu/cloudify/5.0.0/.dev1-release/cloudify-postgresql-docker-5.0.0.dev1.tar
-docker tag cloudify-postgresql-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-postgresql:latest
-docker push cloudify-postgresql-docker-5.0.0.dev1.tar eu.gcr.io/trammell-project/docker-cfy-manager-postgresql:latest
+docker load -i cloudify-postgresql-docker-5.0.0.dev1.tar
+sleep 1
+docker tag docker-cfy-manager-postgresql eu.gcr.io/trammell-project/docker-cfy-manager-postgresql:latest
+sleep 1
+docker push eu.gcr.io/trammell-project/docker-cfy-manager-postgresql:latest
+rm cloudify-postgresql-docker-5.0.0.dev1.tar
+docker rmi docker-cfy-manager-postgresql eu.gcr.io/trammell-project/docker-cfy-manager-postgresql:latest
 

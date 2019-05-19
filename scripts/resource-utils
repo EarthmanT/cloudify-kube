@@ -193,3 +193,15 @@ set_active_manager_ip () {
     fi
 
 }
+
+upload_license () {
+
+    POD_NAME=$1
+
+    log_message "Uploading License File."
+    if [[ "${POD_NAME}" = *"cloudify-manager-worker"* ]]; then
+        kubectl cp license.yaml default/${POD_NAME}:/etc/cloudify/license.yaml
+    fi
+    log_message "Uploaded License File."
+
+}

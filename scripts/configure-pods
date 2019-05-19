@@ -31,7 +31,7 @@ configure_pod () {
     replace_string PRIVATE_IP ${PRIVATE_IP} ${INI_PATH}
     replace_string PUBLIC_IP ${SERVICE_IP} ${INI_PATH}
     replace_string ACTIVE_MANAGER_IP ${ACTIVE_MANAGER_IP} ${INI_PATH}
-    replace_string ACTIVE_PASSWORD ${ADMIN_PASSWORD} ${INI_PATH}
+    replace_string ADMIN_PASSWORD ${ADMIN_PASSWORD} ${INI_PATH}
     replace_string CERTIFICATENAME ${POD_NAME} ${INI_PATH}
     replace_string REPLACE_RABBIT_IP ${RABBIT_IP} ${INI_PATH}
     replace_string REPLACE_POSTGRESQL_IP ${PG_IP} ${INI_PATH}
@@ -46,6 +46,7 @@ configure_pod () {
     retry_command "kubectl cp ${LOCAL_CERTS_FOLDER} ${TARGET_PATH_DIR}/ssl"
 
     # This command has a problem with protection. TODO: Fix it.
+    upload_license ${POD_NAME}
     kubectl exec -it ${POD_NAME} -- cfy_manager configure
 
 }
