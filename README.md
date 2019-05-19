@@ -4,7 +4,7 @@ An Active-Active Cloudify Manager Kubernetes Application.
 
 ## Prerequirements
   * A Kubernetes Cluster
-  * A Cloudify License
+  * A Cloudify License (It should be stored in this directory with name `license.yaml`.)
 
 ## Installation
 
